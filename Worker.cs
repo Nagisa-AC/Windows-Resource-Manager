@@ -69,23 +69,47 @@ public sealed class WindowsBackgroundService(
                 PerformanceCounter cpuCounter = new PerformanceCounter("Process", "% Processor Time", processName);
                 PerformanceCounter ramCounter = new PerformanceCounter(".NET CLR Memory", "# bytes in all heaps", processName);
 
-                // Set up a timer to periodically retrieve CPU usage
+                // periodically retrieve resource usage
                 System.Timers.Timer timer = new System.Timers.Timer();
-                timer.Interval = 3000; // Set the interval to 1 second (1000 milliseconds)
+                timer.Interval = 5000; 
                 timer.Elapsed += (sender, e) =>
                 {
 
                     // testing chrome mem usage 
 
+                    var category = new PerformanceCounterCategory("Process");
+                    var instanceNames = category.GetInstanceNames();
+                    Array.Sort(instanceNames);
+
+
+                    //PerformanceCounter PC = new PerformanceCounter();
                     double memsize = 0;
-                    PerformanceCounter PC = new PerformanceCounter();
-                    PC.CategoryName = "Process";
-                    PC.CounterName = "Working Set - Private";
-                    PC.InstanceName = "chrome";
-                    memsize = PC.NextValue() / (1024 * 1024);
-                    logger.LogInformation($"{PC.InstanceName} mem usage: {memsize} MB");
-                    PC.Close();
-                    PC.Dispose();
+                    ArrayList ChromeProcessList = new ArrayList();
+
+                    foreach (var instance in instanceNames)
+                    {
+                        if (instance.StartsWith("chrome"))
+                        {
+                            ChromeProcessList.Add(instance);
+                        }
+                    }
+
+
+                    foreach (var ChromeInstance  in ChromeProcessList)
+                    {
+                        PerformanceCounter PC = new PerformanceCounter(); // PC must be defined for every instance
+                        PC.CategoryName = "Process";
+                        PC.CounterName = "Working Set - Private";
+                        PC.InstanceName = $"{ChromeInstance}";
+                        memsize += PC.NextValue() / (1024 * 1024); // KB to MB
+                        logger.LogInformation($"{memsize} MB");
+                        PC.Close();
+                        PC.Dispose();
+                    }
+
+                    //logger.LogInformation($"{PC.InstanceName} mem usage: {memsize} GB");
+                    //PC.Close();
+                    //PC.Dispose();
 
                     // Retrieve CPU usage for the specified process
                     //float cpuUsage = cpuCounter.NextValue();
