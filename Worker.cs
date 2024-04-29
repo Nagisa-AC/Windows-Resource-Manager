@@ -74,11 +74,24 @@ public sealed class WindowsBackgroundService(
                 timer.Interval = 3000; // Set the interval to 1 second (1000 milliseconds)
                 timer.Elapsed += (sender, e) =>
                 {
+
+                    // testing chrome mem usage 
+
+                    double memsize = 0;
+                    PerformanceCounter PC = new PerformanceCounter();
+                    PC.CategoryName = "Process";
+                    PC.CounterName = "Working Set - Private";
+                    PC.InstanceName = "chrome";
+                    memsize = PC.NextValue() / (1024 * 1024);
+                    logger.LogInformation($"{PC.InstanceName} mem usage: {memsize} MB");
+                    PC.Close();
+                    PC.Dispose();
+
                     // Retrieve CPU usage for the specified process
                     //float cpuUsage = cpuCounter.NextValue();
-                    float ramUsage = ramCounter.NextValue();
+                    //float ramUsage = ramCounter.NextValue();
 
-                    logger.LogInformation($"RAM Usage: {ramUsage}");
+                    //logger.LogInformation($"RAM Usage: {ramUsage}");
 
                     // Output CPU usage to the console
                     //Console.WriteLine($"CPU Usage for process '{processName}': {cpuUsage}%");
