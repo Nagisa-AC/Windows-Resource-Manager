@@ -1,6 +1,7 @@
 using System.Collections;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq.Expressions;
 
 
 namespace App.WindowsService;
@@ -80,45 +81,42 @@ public sealed class WindowsBackgroundService(
                     var category = new PerformanceCounterCategory("Process");
                     var instanceNames = category.GetInstanceNames();
                     Array.Sort(instanceNames);
-
-
-                    //PerformanceCounter PC = new PerformanceCounter();
-                    double memsize = 0;
-                    ArrayList ChromeProcessList = new ArrayList();
-
-                    foreach (var instance in instanceNames)
+                    
+                    try
                     {
-                        if (instance.StartsWith("chrome"))
+                        double memsize = 0;
+                        ArrayList ChromeProcessList = new ArrayList();
+
+                        foreach (var instance in instanceNames)
                         {
-                            ChromeProcessList.Add(instance);
+                            if (instance.StartsWith("chrome"))
+                            {
+                                ChromeProcessList.Add(instance);
+                            }
                         }
-                    }
 
 
-                    foreach (var ChromeInstance  in ChromeProcessList)
+                        foreach (var ChromeInstance in ChromeProcessList)
+                        {
+                            PerformanceCounter PerfCounter = new PerformanceCounter(); // PerfCounter must be defined for every instance
+                            PerfCounter.CategoryName = "Process";
+                            PerfCounter.CounterName = "Working Set - Private";
+                            PerfCounter.InstanceName = $"{ChromeInstance}";
+                            memsize += PerfCounter.NextValue() / (1024 * 1024); // KB to MB
+                            logger.LogInformation($"{memsize} MB");
+                            PerfCounter.Close();
+                            PerfCounter.Dispose();
+                        }
+
+                    } 
+                    catch (Exception ex)
                     {
-                        PerformanceCounter PC = new PerformanceCounter(); // PC must be defined for every instance
-                        PC.CategoryName = "Process";
-                        PC.CounterName = "Working Set - Private";
-                        PC.InstanceName = $"{ChromeInstance}";
-                        memsize += PC.NextValue() / (1024 * 1024); // KB to MB
-                        logger.LogInformation($"{memsize} MB");
-                        PC.Close();
-                        PC.Dispose();
+                        logger.LogCritical("Failed to fetch process or counter");
                     }
+                        
 
-                    //logger.LogInformation($"{PC.InstanceName} mem usage: {memsize} GB");
-                    //PC.Close();
-                    //PC.Dispose();
+                    
 
-                    // Retrieve CPU usage for the specified process
-                    //float cpuUsage = cpuCounter.NextValue();
-                    //float ramUsage = ramCounter.NextValue();
-
-                    //logger.LogInformation($"RAM Usage: {ramUsage}");
-
-                    // Output CPU usage to the console
-                    //Console.WriteLine($"CPU Usage for process '{processName}': {cpuUsage}%");
                 };
                 timer.Start();
 
@@ -126,21 +124,6 @@ public sealed class WindowsBackgroundService(
                 Console.WriteLine("Press any key to exit...");
                 Console.ReadKey();
 
-
-
-                Thread.Sleep(200000);
-
-                //if (instanceNames.Contains("chrome"))
-                //{
-                //    instance = "chrome";
-                //    logger.LogInformation($"{instance} is a running process");
-                //}
-
-
-
-
-
-                Thread.Sleep(100000);
 
                 //Process[] localAll = Process.GetProcesses();
                 //int counter = 1;
