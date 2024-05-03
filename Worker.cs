@@ -69,6 +69,7 @@ public sealed class WindowsBackgroundService(
                 // Create a PerformanceCounter object for CPU usage of the specified process
                 PerformanceCounter cpuCounter = new PerformanceCounter("Process", "% Processor Time", processName);
                 PerformanceCounter ramCounter = new PerformanceCounter(".NET CLR Memory", "# bytes in all heaps", processName);
+                double totalMemorySize = 0;
 
                 // periodically retrieve resource usage
                 System.Timers.Timer timer = new System.Timers.Timer();
@@ -84,7 +85,6 @@ public sealed class WindowsBackgroundService(
                     
                     try
                     {
-                        double memsize = 0;
                         ArrayList ChromeProcessList = new ArrayList();
 
                         foreach (var instance in instanceNames)
@@ -96,22 +96,35 @@ public sealed class WindowsBackgroundService(
                         }
 
 
+                        // Compute RAM usage for all instances (Chrome)
+
                         foreach (var ChromeInstance in ChromeProcessList)
                         {
                             PerformanceCounter PerfCounter = new PerformanceCounter(); // PerfCounter must be defined for every instance
                             PerfCounter.CategoryName = "Process";
                             PerfCounter.CounterName = "Working Set - Private";
                             PerfCounter.InstanceName = $"{ChromeInstance}";
-                            memsize += PerfCounter.NextValue() / (1024 * 1024); // KB to MB
-                            logger.LogInformation($"{memsize} MB");
+                            PerfCounter.NextValue();
+                            //Thread.Sleep(1000);
+                            double memsize = PerfCounter.NextValue() / (1024 * 1024); // KB to GB
+                            totalMemorySize += memsize;
+                            //logger.LogInformation($"{ChromeInstance} : {memsize} MB");
                             PerfCounter.Close();
                             PerfCounter.Dispose();
                         }
 
+                        logger.LogInformation($"Total memory size: {totalMemorySize}");
+
+                        if (totalMemorySize > 650)
+                        {
+                            logger.LogWarning($"Chrome is using over {totalMemorySize} MB of RAM");
+                        }
+
+
                     } 
                     catch (Exception ex)
                     {
-                        logger.LogCritical("Failed to fetch process or counter");
+                        logger.LogCritical($"Failed to fetch process or counter");
                     }
                         
 
