@@ -117,7 +117,10 @@ public sealed class WindowsBackgroundService(
 
                         if (totalMemorySize > 650)
                         {
-                            logger.LogWarning($"Chrome is using over {totalMemorySize} MB of RAM");
+                            logger.LogWarning($"Chrome is using {totalMemorySize} MB of RAM");
+                            ResourceUsageNotification resourceUsageNotification = new ResourceUsageNotification();
+                            resourceUsageNotification.
+                            
                         }
 
 
